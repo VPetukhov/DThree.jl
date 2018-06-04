@@ -10,7 +10,7 @@
 export figure, scf, gcf, closefig, closeall
 export figure_size, figure_position, figure_raise, figure_floating, figure_title, figure_title!
 
-type BlinkDisplay <: Display
+mutable struct BlinkDisplay <: Display
     figs::Dict{Int,Blink.AtomShell.Window}
     fig_order::Vector{Int}
     current_fig::Int
@@ -160,9 +160,13 @@ end
 ## Make a web page
 ## from Plots.jl
 function open_browser_window(filename::AbstractString)
-    @osx_only   return run(`open $(filename)`)
-    @linux_only return run(`xdg-open $(filename)`)
-    @windows_only return run(`$(ENV["COMSPEC"]) /c start $(filename)`)
+    @static if is_apple() 
+        return run(`open $(filename)`)
+    elseif is_linux() 
+        return run(`xdg-open $(filename)`)
+    elseif is_windows()
+        return run(`$(ENV["COMSPEC"]) /c start $(filename)`)
+    end
     warn("Unknown OS... cannot open browser window.")
 end
 

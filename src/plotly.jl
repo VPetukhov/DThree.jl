@@ -20,6 +20,6 @@ end
 Base.display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::Plots.Plot{PlotlyBackend}) = display(_display, p)
 
 
-function Base.writemime(io::IO, ::MIME"text/html", plt::Plots.Plot{PlotlyBackend})
+function Base.show(io::IO, ::MIME"text/html", plt::Plots.Plot{PlotlyBackend})
   write(io, html_head(plt) * Plots.html_body(plt))
 end

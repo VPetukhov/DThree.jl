@@ -14,7 +14,7 @@ export plot, scatter
 
 
 ## Type to hold D3 commands
-type D3Plot
+mutable struct D3Plot
     q
     receiver
     D3Plot() = new([""], "chart")
@@ -22,7 +22,7 @@ end
 
 # Co-opt the REPL display
 Base.display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::D3Plot) = display(_display, p)
-function Base.writemime(io::IO, ::MIME"text/html", x::D3Plot)
+function Base.show(io::IO, ::MIME"text/html", x::D3Plot)
     tpl = Mustache.template_from_file(Pkg.dir("DThree", "tpl", "d3.html"))
     Mustache.render(io, tpl, Dict(:script=>get(x), :title=>"Graphic"))
 end
@@ -31,7 +31,7 @@ end
 function browse(x::D3Plot; style="")
     f = tempname() * ".html"
     io = open(f, "w")
-    writemime(io, "text/html", x)
+    Base.show(io, "text/html", x)
     close(io)
     open_browser_window(f)
 end
@@ -75,8 +75,8 @@ tickFormat(x::Real) = D3().format(",.02f")
 tickFormat(x::Integer) = D3().format(",.r")
 tickFormat(x::DateTime) = asis("function(d) { return d3.time.format('%x')(new Date(d))}")
 
-tickFormat{T}(x::Vector{T}) = tickFormat(x[1])
-tickFormat{T}(x::DataArray{T}) = tickFormat(x[1])
+tickFormat(x::Vector{T}) where {T} = tickFormat(x[1])
+tickFormat(x::DataArray{T}) where {T} = tickFormat(x[1])
 tickFormat(x) = tickFormat(collect(x))
 
 
@@ -84,7 +84,7 @@ tickFormat(x) = tickFormat(collect(x))
 ## do we convert time to seconds for display? Only if a time
 iftime(x::Any) = x
 iftime(x::DateTime) = (x - DateTime(1970,1,1,0,0,0)).value
-iftime{T}(x::DataArray{T}) = iftime(x[1])
+iftime(x::DataArray{T}) where {T} = iftime(x[1])
 
 
 ## Some utilities
@@ -163,7 +163,7 @@ function create_datum(::Type{Val{:lineType}},
                       vars=[:x, :y];
                       legend=":x",
                       color="blue",
-                      area::Bool=false
+                      area::Bool=false,
                       kwargs...)
 
 
@@ -185,8 +185,8 @@ function create_datum(::Type{Val{:lineType}},
                       vars=[:x, :y];
                       legend=Dict(),  # d[level] = "text"
                       colors=Dict(),  # d[level] = :color,
-                      area = Dict()
-                      kwargs...)   
+                      area = Dict(),
+                      kwargs...)
     ## who should group_by, but instead do this manually
 
     fs = d[f]
@@ -237,11 +237,11 @@ function create_datum(::Type{Val{:lineType}},
 end
 
 
-function create_datum{T<:Real, S<:Real}(::Type{Val{:lineType}},
+function create_datum(::Type{Val{:lineType}},
                                         xs::Vector{T},
                                         ys::Vector{S};
                                         kwargs...
-                                        )
+                                        ) where {T <: Real,S <: Real}
 
     d = DataFrame(x=xs, y=ys)
     create_datum(Val{:lineType},
@@ -252,11 +252,11 @@ end
 
 ## lineTtype for multiple values specified with a factor
 ## legend and cols are dictionaries with keys as factors
-function create_datum{T<:Real, S<:Real}(::Type{Val{:lineType}},
+function create_datum(::Type{Val{:lineType}},
                                         xs::Vector{T}, ys::Vector{S},
                                         fs::Vector;
                                         kwargs...
-                                        )
+                                        ) where {T <: Real,S <: Real}
 
     d = DataFrame(x=xs, y=ys, f=fs)
 
@@ -405,17 +405,6 @@ function plot(fs::Vector, from::Real, to::Real;
 end
 
 ## parametric plot
-function plot(f::Function, g::Function, from::Real, to::Real;
-              labels=["x", "y"],
-              selector="#chart svg",
-              kwargs...)
-    
-      _line_chart(d, f, vars;
-                labels=labels,
-                selector=selector,
-                kwargs...)
-end
-
 function plot(d::DataFrame, f::Union{Void, Symbol}, vars=[:x, :y];
               labels=["x", "y"],
               selector="#chart svg",
@@ -455,7 +444,7 @@ function create_datum(::Type{Val{:scatterType}},
                       vars=[:x, :y];
                       legend=":x",
                       colors=[:blue],
-                      shapes=[:circle]
+                      shapes=[:circle],
                       kwargs...)
 
 
@@ -477,7 +466,7 @@ function create_datum(::Type{Val{:lineType}},
                       vars=[:x, :y];
                       legend=Dict(),  # d[level] = "text"
                       colors=Dict(),  # d[level] = :color,
-                      area = Dict()
+                      area = Dict(),
                       kwargs...)   
     ## who should group_by, but instead do this manually
 
@@ -533,14 +522,14 @@ end
 
 
 
-function create_datum{T<:Real,S<:Real}(::Type{Val{:scatterType}},
+function create_datum(::Type{Val{:scatterType}},
                                        xs::Vector{T},
                                        ys::Vector{S};
                                        legend="y",
                                        colors=["blue"],
                                        sizes=[1],
                                        shapes=["circle"]
-                                       )
+                                       ) where {T <: Real,S <: Real}
 
     
     ## recycle colors, sizes, shapes if not arrays
@@ -741,10 +730,10 @@ function scatterChart(x::DataFrame, f::Union{Void, Symbol};
 end
 
 
-function barChart{S <: Real, T <: AbstractString}(xs::Vector{S}, labels::Vector{T};
-                                          selector = "#chart svg", # in web template
-                                          colors=nothing, #  which are needed?
-                                          legend=nothing)
+function barChart(xs::Vector{S}, labels::Vector{T};
+                  selector = "#chart svg", # in web template
+                  colors=nothing, #  which are needed?
+                  legend=nothing) where {S <: Real,T <: AbstractString}
 
     if isa(legend, Void) legend = "Nothing" end
     

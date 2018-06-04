@@ -10,12 +10,14 @@ import Base.getindex, Base.push!
 using JSON
 using Mustache
 using Blink
+using DataArrays
+using DataFrames
 
 export asis, @asis_str, D3, browse
 export js, loadurl, loadfile
 
 
-type AsIs
+mutable struct AsIs
     x
 end
 asis(x) = AsIs(x)
@@ -35,7 +37,7 @@ end
 ## * functions are treated as callbacks into julia. These are asynchronous.
 ## * use asis"x" or asis("x") to treat object "as is". This is needed to quote JavaScript functions
 ## TODO: PyCall this baby so members can be added from a list of symbols
-type D3
+mutable struct D3
     cmd
     _var
     var
@@ -159,7 +161,7 @@ prep(x::D3) = prep(asis(x.render()))
 include("colors.jl")
 include("display.jl")
 include("blink.jl")
-#include("plots.jl")
+include("plots.jl")
 include("plotly.jl")
 
 
